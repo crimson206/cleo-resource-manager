@@ -1,0 +1,13 @@
+{
+    "json.schemas": [
+        {
+            "fileMatch": ["**/.resource-manager/config.json"],
+            "url": "./schemas/config.schema.json"
+        }
+    ],
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
+} 

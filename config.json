@@ -1,0 +1,1 @@
+{"providers": {"github": [{"name": "test-github", "enabled": true, "url": "https://github.com/test/repo", "resource_dir": "resources", "timeout": 10, "default_branch": "main"}], "local": [{"name": "test-local", "enabled": true, "path": "./local-resources"}]}, "cache": {"enabled": true, "ttl": 3600}}

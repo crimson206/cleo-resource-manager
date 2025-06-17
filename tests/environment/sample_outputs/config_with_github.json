@@ -1,0 +1,15 @@
+{
+    "providers": {
+        "github": [
+            {
+                "name": "test-github",
+                "enabled": true,
+                "url": "https://github.com/test/repo",
+                "output_dir": "./github-resources",
+                "timeout": 10,
+                "default_branch": "main"
+            }
+        ],
+        "local": []
+    }
+} 

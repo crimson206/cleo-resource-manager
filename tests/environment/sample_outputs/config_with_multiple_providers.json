@@ -1,0 +1,34 @@
+{
+    "providers": {
+        "github": [
+            {
+                "name": "test-github-1",
+                "enabled": true,
+                "url": "https://github.com/test/repo1",
+                "output_dir": "./github-resources-1",
+                "timeout": 10,
+                "default_branch": "main"
+            },
+            {
+                "name": "test-github-2",
+                "enabled": false,
+                "url": "https://github.com/test/repo2",
+                "output_dir": "./github-resources-2",
+                "timeout": 5,
+                "default_branch": "develop"
+            }
+        ],
+        "local": [
+            {
+                "name": "test-local-1",
+                "enabled": true,
+                "output_dir": "./local-resources-1"
+            },
+            {
+                "name": "test-local-2",
+                "enabled": false,
+                "output_dir": "./local-resources-2"
+            }
+        ]
+    }
+} 

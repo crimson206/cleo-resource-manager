@@ -1,0 +1,91 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Resource Manager Configuration",
+    "description": "Configuration schema for Resource Manager",
+    "type": "object",
+    "properties": {
+        "cache": {
+            "type": "object",
+            "description": "Cache configuration",
+            "properties": {
+                "max_age_hours": {
+                    "type": "integer",
+                    "description": "Maximum age of cache entries in hours",
+                    "default": 24
+                },
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Whether caching is enabled",
+                    "default": true
+                }
+            }
+        },
+        "providers": {
+            "type": "object",
+            "description": "Resource provider configuration",
+            "properties": {
+                "github": {
+                    "type": "object",
+                    "description": "GitHub provider configuration",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "description": "Whether GitHub provider is enabled",
+                            "default": true
+                        },
+                        "timeout": {
+                            "type": "integer",
+                            "description": "Timeout for GitHub API requests in seconds",
+                            "default": 10
+                        },
+                        "default_branch": {
+                            "type": "string",
+                            "description": "Default branch to use for GitHub repositories",
+                            "default": "main"
+                        },
+                        "url": {
+                            "type": "string",
+                            "description": "GitHub repository URL to fetch resources from",
+                            "format": "uri"
+                        }
+                    }
+                },
+                "local": {
+                    "type": "object",
+                    "description": "Local provider configuration",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean",
+                            "description": "Whether local provider is enabled",
+                            "default": true
+                        },
+                        "default_path": {
+                            "type": "string",
+                            "description": "Default path for local resources",
+                            "default": "./resources"
+                        }
+                    }
+                }
+            }
+        },
+        "resources": {
+            "type": "object",
+            "description": "Resource configuration",
+            "properties": {
+                "default_pattern": {
+                    "type": "string",
+                    "description": "Default file pattern for resource filtering",
+                    "default": "*"
+                },
+                "exclude_patterns": {
+                    "type": "array",
+                    "description": "Patterns to exclude from resource collection",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [".git", "__pycache__", "*.pyc"]
+                }
+            }
+        }
+    }
+} 

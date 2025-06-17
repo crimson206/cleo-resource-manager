@@ -1,0 +1,12 @@
+{
+    "providers": {
+        "github": [],
+        "local": [
+            {
+                "name": "test-local",
+                "enabled": true,
+                "output_dir": "./local-resources"
+            }
+        ]
+    }
+} 
