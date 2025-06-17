@@ -2,5 +2,10 @@
     "providers": {
         "github": [],
         "local": []
+    },
+    "auth": {
+        "github": {
+            "method": "auto"
+        }
     }
 }

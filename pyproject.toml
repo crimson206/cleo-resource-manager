@@ -1,6 +1,6 @@
 [project]
-name = "cleo-resource-manager"
-version = "0.1.0"
+name = "resource-manager"
+version = "1.0.0"
 description = "Resource manager for managing and caching resources from various providers"
 authors = [
     {name = "Sisung Kim", email = "sisung.kim1@gmail.com"}
@@ -10,8 +10,7 @@ requires-python = ">=3.10,<4.0"
 dependencies = [
     "cleo (>=2.1.0,<3.0.0)",
     "requests (>=2.32.4,<3.0.0)"
-
 ]
 
 [project.scripts]
-resource-manager = "cleo_resource_manager.cli.application:main"
+resource-manager = "resource_manager.cli.application:main"

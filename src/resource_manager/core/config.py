@@ -2,14 +2,14 @@
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, Optional, List, Iterator, Tuple
 
 
 class Config:
     """Configuration wrapper class."""
 
     def __init__(self, config_data: Dict[str, Any]):
-        self._config = config_data
+        self._config = config_data or {}
         self._validate_config()
 
     def get(self, key: str, default: Any = None) -> Any:
@@ -68,9 +68,17 @@ class Config:
 
         self._validate_config()
 
-    def items(self) -> Dict[str, Any]:
-        """Get all configuration items."""
-        return self._config
+    def items(self) -> Iterator[Tuple[str, Any]]:
+        """Get all configuration items as iterator of (key, value) pairs."""
+        return iter(self._config.items())
+
+    def keys(self) -> Iterator[str]:
+        """Get all configuration keys."""
+        return iter(self._config.keys())
+
+    def values(self) -> Iterator[Any]:
+        """Get all configuration values."""
+        return iter(self._config.values())
 
     def get_providers(self, provider_type: str) -> List[Dict[str, Any]]:
         """Get providers of specific type."""
@@ -127,6 +135,32 @@ class Config:
             if "path" not in provider:
                 raise ValueError("Local provider must have a path")
 
+        # Initialize and validate auth section
+        if "auth" not in self._config:
+            self._config["auth"] = {"github": {"method": "auto"}}
+        
+        auth = self._config["auth"]
+        if not isinstance(auth, dict):
+            raise ValueError("Auth must be a dictionary")
+        
+        # Initialize GitHub auth if not present
+        if "github" not in auth:
+            auth["github"] = {"method": "auto"}
+        
+        github_auth = auth["github"]
+        if not isinstance(github_auth, dict):
+            raise ValueError("GitHub auth must be a dictionary")
+        
+        # Validate auth method
+        auth_method = github_auth.get("method", "auto")
+        valid_methods = ["default", "auto", "dotenv", "gitcli"]
+        if auth_method not in valid_methods:
+            raise ValueError(f"Invalid auth method '{auth_method}'. Must be one of: {', '.join(valid_methods)}")
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return self._config.copy()
+
     def __getitem__(self, key: str) -> Any:
         """Get configuration value using dictionary syntax."""
         return self._config[key]
@@ -148,112 +182,9 @@ class Config:
         """Get number of configuration items."""
         return len(self._config)
 
-
-# Default configuration schema with documentation
-DEFAULT_CONFIG_SCHEMA = {
-    "cache": {
-        "max_age_hours": {
-            "type": int,
-            "default": 24,
-            "description": "Maximum age of cache entries in hours"
-        },
-        "enabled": {
-            "type": bool,
-            "default": True,
-            "description": "Whether caching is enabled"
-        }
-    },
-    "providers": {
-        "type": "object",
-        "description": "Resource provider configuration",
-        "properties": {
-            "github": {
-                "type": "array",
-                "description": "GitHub provider configurations",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "name": {
-                            "type": str,
-                            "description": "Unique name for this provider"
-                        },
-                        "enabled": {
-                            "type": bool,
-                            "default": True,
-                            "description": "Whether this provider is enabled"
-                        },
-                        "timeout": {
-                            "type": int,
-                            "default": 10,
-                            "description": "Timeout for GitHub API requests in seconds"
-                        },
-                        "default_branch": {
-                            "type": str,
-                            "default": "main",
-                            "description": "Default branch to use for GitHub repositories"
-                        },
-                        "url": {
-                            "type": str,
-                            "description": "GitHub repository URL to fetch resources from",
-                            "format": "uri"
-                        },
-                        "resource_dir": {
-                            "type": str,
-                            "default": "resources",
-                            "description": "Directory in the repository where resources are stored"
-                        }
-                    },
-                    "required": ["name", "url"]
-                }
-            },
-            "local": {
-                "type": "array",
-                "description": "Local provider configurations",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "name": {
-                            "type": str,
-                            "description": "Unique name for this provider"
-                        },
-                        "enabled": {
-                            "type": bool,
-                            "default": True,
-                            "description": "Whether this provider is enabled"
-                        },
-                        "path": {
-                            "type": str,
-                            "description": "Path to local resources directory"
-                        }
-                    },
-                    "required": ["name", "path"]
-                }
-            }
-        }
-    },
-    "resources": {
-        "default_pattern": {
-            "type": str,
-            "default": "*",
-            "description": "Default file pattern for resource filtering"
-        },
-        "exclude_patterns": {
-            "type": list,
-            "default": [".git", "__pycache__", "*.pyc"],
-            "description": "Patterns to exclude from resource collection"
-        },
-        "include_patterns": {
-            "type": list,
-            "default": [],
-            "description": "Patterns to include in resource collection"
-        },
-        "output_dir": {
-            "type": str,
-            "default": "./output",
-            "description": "Default directory to save downloaded resources"
-        }
-    }
-}
+    def __bool__(self) -> bool:
+        """Check if config is not empty."""
+        return bool(self._config)
 
 
 class ConfigManager:
@@ -261,13 +192,14 @@ class ConfigManager:
 
     def __init__(
         self,
-        config_dir: Path,
+        config_dir: Path = None,
         config_file: str = "config.json",
-        schema: Optional[Dict] = None,
     ):
+        if config_dir is None:
+            config_dir = Path.cwd() / ".resource-manager"
+        
         self.config_dir = config_dir
         self.config_file = config_file
-        self.schema = schema or DEFAULT_CONFIG_SCHEMA
         self.config_path = config_dir / config_file
 
     def init(self) -> None:
@@ -280,19 +212,15 @@ class ConfigManager:
         })
         self.save_config(config)
 
-    def load_config(self) -> Config:
+    def load_config(self) -> Optional[Config]:
         """Load configuration from file."""
         if not self.config_path.exists():
-            return Config({
-                "providers": {
-                    "github": [],
-                    "local": []
-                }
-            })
+            return None
 
         try:
-            with open(self.config_path, "r") as f:
-                return Config(json.load(f))
+            with open(self.config_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return Config(data)
         except Exception as e:
             raise RuntimeError(f"Failed to load config: {e}")
 
@@ -300,31 +228,104 @@ class ConfigManager:
         """Save configuration to file."""
         try:
             self.config_dir.mkdir(parents=True, exist_ok=True)
-            with open(self.config_path, "w") as f:
-                json.dump(config._config, f, indent=2)
+            with open(self.config_path, "w", encoding="utf-8") as f:
+                json.dump(config.to_dict(), f, indent=2)
         except Exception as e:
             raise RuntimeError(f"Failed to save config: {e}")
 
     def create_sample_config(self) -> Path:
         """Create a sample configuration file."""
         sample_config = {
+            "auth": {
+                "github": {
+                    "method": "auto"
+                }
+            },
             "providers": {
-                "github": [],
-                "local": []
+                "github": [
+                    {
+                        "name": "example-github",
+                        "enabled": True,
+                        "url": "https://github.com/owner/repo",
+                        "default_branch": "main",
+                        "resource_dir": "resources",
+                        "timeout": 10
+                    }
+                ],
+                "local": [
+                    {
+                        "name": "example-local",
+                        "enabled": True,
+                        "path": "./local-resources"
+                    }
+                ]
+            },
+            "resources": {
+                "include_patterns": ["*.txt", "*.md"],
+                "exclude_patterns": [".git", "__pycache__", "*.pyc"]
             }
         }
-        self.save_config(Config(sample_config))
+        
+        config = Config(sample_config)
+        self.save_config(config)
         return self.config_path
 
     def validate_config(self, config: Config) -> bool:
-        """Validate configuration against schema."""
-        if not self.schema:
-            return True
-
+        """Validate configuration."""
+        if not config:
+            return False
+            
         try:
-            self._validate_dict(config._config, self.schema)
+            # Basic structure validation
+            if not isinstance(config.to_dict(), dict):
+                return False
+                
+            # Check if providers exist
+            providers = config.get("providers")
+            if not isinstance(providers, dict):
+                return False
+                
+            # Check GitHub providers
+            github_providers = config.get("providers.github", [])
+            if not isinstance(github_providers, list):
+                return False
+                
+            for provider in github_providers:
+                if not isinstance(provider, dict):
+                    return False
+                if "name" not in provider or "url" not in provider:
+                    return False
+                    
+            # Check local providers
+            local_providers = config.get("providers.local", [])
+            if not isinstance(local_providers, list):
+                return False
+                
+            for provider in local_providers:
+                if not isinstance(provider, dict):
+                    return False
+                if "name" not in provider or "path" not in provider:
+                    return False
+            
+            # Check auth section
+            auth = config.get("auth", {})
+            if auth and not isinstance(auth, dict):
+                return False
+            
+            # Check GitHub auth
+            github_auth = config.get("auth.github", {})
+            if github_auth:
+                if not isinstance(github_auth, dict):
+                    return False
+                
+                auth_method = github_auth.get("method", "auto")
+                valid_methods = ["default", "auto", "dotenv", "gitcli"]
+                if auth_method not in valid_methods:
+                    return False
+                    
             return True
-        except ValueError:
+            
+        except Exception:
             return False
 
     def get_config_info(self) -> Dict[str, Any]:
@@ -333,37 +334,6 @@ class ConfigManager:
         return {
             "path": str(self.config_path),
             "exists": self.config_path.exists(),
-            "valid": self.validate_config(config),
-            "schema_defined": bool(self.schema),
+            "valid": self.validate_config(config) if config else False,
+            "has_providers": bool(config and config.get("providers")) if config else False,
         }
-
-    def _generate_sample_config(self) -> Dict:
-        """Generate sample configuration based on schema."""
-        if not self.schema:
-            return {}
-
-        def _generate_value(value: Dict) -> Any:
-            if "type" in value:
-                return value.get("default", None)
-            return {k: _generate_value(v) for k, v in value.items()}
-
-        return _generate_value(self.schema)
-
-    def _validate_dict(self, data: Dict, schema: Dict) -> None:
-        """Validate dictionary against schema."""
-        for key, value in schema.items():
-            if key not in data:
-                if value.get("required", False):
-                    raise ValueError(f"Missing required key: {key}")
-                continue
-
-            if isinstance(value, dict) and "type" not in value:
-                if not isinstance(data[key], dict):
-                    raise ValueError(f"Expected dict for key: {key}")
-                self._validate_dict(data[key], value)
-            else:
-                expected_type = value.get("type", type(None))
-                if not isinstance(data[key], expected_type):
-                    raise ValueError(
-                        f"Invalid type for key {key}: expected {expected_type.__name__}"
-                    ) 

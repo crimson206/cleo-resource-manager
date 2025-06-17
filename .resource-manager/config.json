@@ -9,9 +9,9 @@
       {
         "name": "example-github",
         "enabled": true,
-        "url": "https://github.com/owner/repo",
+        "url": "https://github.com/crimson206/my-prompts",
         "default_branch": "main",
-        "resource_dir": "resources",
+        "resource_dir": "prompts",
         "timeout": 10
       }
     ],

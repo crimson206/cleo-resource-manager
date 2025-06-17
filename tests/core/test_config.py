@@ -123,6 +123,11 @@ def test_config_manager_create_sample(config_manager):
     """Test creating a sample configuration file."""
     config_path = config_manager.create_sample_config()
     assert config_path.exists()
+    
     config = config_manager.load_config()
-    assert config.get("providers.github") == []
-    assert config.get("providers.local") == [] 
+    # 예시 provider들이 있는지 확인
+    assert len(config.get("providers.github")) > 0
+    assert len(config.get("providers.local")) > 0
+    
+    # Auth 섹션 확인
+    assert config.get("auth.github.method") == "auto"

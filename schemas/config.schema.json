@@ -4,78 +4,111 @@
     "description": "Configuration schema for Resource Manager",
     "type": "object",
     "properties": {
-        "cache": {
+        "auth": {
             "type": "object",
-            "description": "Cache configuration",
+            "description": "Authentication configuration",
             "properties": {
-                "max_age_hours": {
-                    "type": "integer",
-                    "description": "Maximum age of cache entries in hours",
-                    "default": 24
-                },
-                "enabled": {
-                    "type": "boolean",
-                    "description": "Whether caching is enabled",
-                    "default": true
+                "github": {
+                    "type": "object",
+                    "description": "GitHub authentication settings",
+                    "properties": {
+                        "method": {
+                            "type": "string",
+                            "description": "Authentication method for GitHub",
+                            "enum": ["default", "auto", "dotenv", "gitcli"],
+                            "default": "auto"
+                        }
+                    },
+                    "additionalProperties": false
                 }
-            }
+            },
+            "additionalProperties": false
         },
         "providers": {
             "type": "object",
             "description": "Resource provider configuration",
             "properties": {
                 "github": {
-                    "type": "object",
-                    "description": "GitHub provider configuration",
-                    "properties": {
-                        "enabled": {
-                            "type": "boolean",
-                            "description": "Whether GitHub provider is enabled",
-                            "default": true
+                    "type": "array",
+                    "description": "GitHub provider configurations",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "description": "Unique name for this provider"
+                            },
+                            "enabled": {
+                                "type": "boolean",
+                                "description": "Whether this provider is enabled",
+                                "default": true
+                            },
+                            "url": {
+                                "type": "string",
+                                "description": "GitHub repository URL to fetch resources from",
+                                "format": "uri",
+                                "pattern": "^https://github\\.com/[^/]+/[^/]+/?$"
+                            },
+                            "default_branch": {
+                                "type": "string",
+                                "description": "Default branch to use for GitHub repositories",
+                                "default": "main"
+                            },
+                            "resource_dir": {
+                                "type": "string",
+                                "description": "Directory in the repository where resources are stored",
+                                "default": "resources"
+                            },
+                            "timeout": {
+                                "type": "integer",
+                                "description": "Timeout for GitHub API requests in seconds",
+                                "minimum": 1,
+                                "maximum": 300,
+                                "default": 10
+                            }
                         },
-                        "timeout": {
-                            "type": "integer",
-                            "description": "Timeout for GitHub API requests in seconds",
-                            "default": 10
-                        },
-                        "default_branch": {
-                            "type": "string",
-                            "description": "Default branch to use for GitHub repositories",
-                            "default": "main"
-                        },
-                        "url": {
-                            "type": "string",
-                            "description": "GitHub repository URL to fetch resources from",
-                            "format": "uri"
-                        }
+                        "required": ["name", "url"],
+                        "additionalProperties": false
                     }
                 },
                 "local": {
-                    "type": "object",
-                    "description": "Local provider configuration",
-                    "properties": {
-                        "enabled": {
-                            "type": "boolean",
-                            "description": "Whether local provider is enabled",
-                            "default": true
+                    "type": "array",
+                    "description": "Local provider configurations",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "description": "Unique name for this provider"
+                            },
+                            "enabled": {
+                                "type": "boolean",
+                                "description": "Whether this provider is enabled",
+                                "default": true
+                            },
+                            "path": {
+                                "type": "string",
+                                "description": "Path to local resources directory"
+                            }
                         },
-                        "default_path": {
-                            "type": "string",
-                            "description": "Default path for local resources",
-                            "default": "./resources"
-                        }
+                        "required": ["name", "path"],
+                        "additionalProperties": false
                     }
                 }
-            }
+            },
+            "additionalProperties": false
         },
         "resources": {
             "type": "object",
-            "description": "Resource configuration",
+            "description": "Resource filtering configuration",
             "properties": {
-                "default_pattern": {
-                    "type": "string",
-                    "description": "Default file pattern for resource filtering",
-                    "default": "*"
+                "include_patterns": {
+                    "type": "array",
+                    "description": "Patterns to include in resource collection",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": []
                 },
                 "exclude_patterns": {
                     "type": "array",
@@ -85,7 +118,69 @@
                     },
                     "default": [".git", "__pycache__", "*.pyc"]
                 }
+            },
+            "additionalProperties": false
+        },
+        "cache": {
+            "type": "object",
+            "description": "Cache configuration",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Whether caching is enabled",
+                    "default": true
+                },
+                "max_age_hours": {
+                    "type": "integer",
+                    "description": "Maximum age of cache entries in hours",
+                    "minimum": 1,
+                    "maximum": 8760,
+                    "default": 24
+                },
+                "dir": {
+                    "type": "string",
+                    "description": "Cache directory path",
+                    "default": "./.cache"
+                }
+            },
+            "additionalProperties": false
+        }
+    },
+    "additionalProperties": false,
+    "examples": [
+        {
+            "auth": {
+                "github": {
+                    "method": "auto"
+                }
+            },
+            "providers": {
+                "github": [
+                    {
+                        "name": "my-github-repo",
+                        "enabled": true,
+                        "url": "https://github.com/owner/repo",
+                        "default_branch": "main",
+                        "resource_dir": "resources",
+                        "timeout": 10
+                    }
+                ],
+                "local": [
+                    {
+                        "name": "local-resources",
+                        "enabled": true,
+                        "path": "./local-resources"
+                    }
+                ]
+            },
+            "resources": {
+                "include_patterns": ["*.txt", "*.md"],
+                "exclude_patterns": [".git", "*.pyc", "__pycache__"]
+            },
+            "cache": {
+                "enabled": true,
+                "max_age_hours": 24
             }
         }
-    }
-} 
+    ]
+}

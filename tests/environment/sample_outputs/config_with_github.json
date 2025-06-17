@@ -4,8 +4,9 @@
             {
                 "name": "test-github",
                 "enabled": true,
-                "url": "https://github.com/test/repo",
+                "url": "https://github.com/crimson206/cleo-resource-manager",
                 "output_dir": "./github-resources",
+                "resource_dir": "tests/environment/sample_outputs/remote_resource",
                 "timeout": 10,
                 "default_branch": "main"
             }

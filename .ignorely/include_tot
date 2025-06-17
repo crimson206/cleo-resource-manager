@@ -1,0 +1,3 @@
+# Include patterns file list
+# Add paths to your include pattern files
+.ignorely/.includes

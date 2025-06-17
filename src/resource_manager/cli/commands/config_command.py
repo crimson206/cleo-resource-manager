@@ -17,18 +17,8 @@ class ConfigCommand(Command):
     arguments = [
         argument(
             "action",
-            "Action to perform (init, show, set, validate)",
+            "Action to perform (init, show, validate)",
             optional=False,
-        ),
-        argument(
-            "key",
-            "Configuration key to set (e.g. providers.github[0].url)",
-            optional=True,
-        ),
-        argument(
-            "value",
-            "Configuration value to set",
-            optional=True,
         ),
     ]
 
@@ -57,13 +47,11 @@ class ConfigCommand(Command):
                 return self._init_config(config_manager)
             elif action == "show":
                 return self._show_config(config_manager)
-            elif action == "set":
-                return self._set_config(config_manager)
             elif action == "validate":
                 return self._validate_config(config_manager)
             else:
                 self.line_error(f"Unknown action: {action}")
-                self.line("Available actions: init, show, set, validate")
+                self.line("Available actions: init, show, validate")
                 return 1
         except Exception as e:
             self.line_error(f"Error: {str(e)}")
@@ -90,61 +78,77 @@ class ConfigCommand(Command):
         if self.option("pretty"):
             self._print_config_pretty(config)
         else:
-            self._print_config(config)
+            self._print_config_simple(config)
 
         return 0
 
-    def _set_config(self, config_manager: ConfigManager) -> int:
-        """Set configuration value."""
-        key = self.argument("key")
-        value = self.argument("value")
-
-        if not key or not value:
-            self.line_error("Both key and value are required for 'set' action")
-            self.line("Example: config set providers.github[0].url https://github.com/owner/repo")
-            return 1
-
-        try:
-            # Parse value based on key
-            value = self._parse_value(value)
-            
-            # Set value
-            config = config_manager.load_config()
-            config.set(key, value)
-            config_manager.save_config(config)
-            
-            self.info(f"Configuration updated: {key} = {value}")
-            return 0
-        except ValueError as e:
-            self.line_error(f"Invalid value: {str(e)}")
-            return 1
-
     def _validate_config(self, config_manager: ConfigManager) -> int:
         """Validate configuration."""
-        config = config_manager.load_config()
-        
         try:
+            config = config_manager.load_config()
+            if not config:
+                self.line_error("No configuration found to validate")
+                return 1
+                
+            # Use the improved validation method
             if config_manager.validate_config(config):
                 self.info("Configuration is valid")
                 return 0
             else:
                 self.line_error("Configuration is invalid")
                 return 1
+                
         except Exception as e:
-            self.line_error(f"Validation error: {str(e)}")
+            self.line_error(f"Error validating config: {str(e)}")
             return 1
+
+    def _basic_config_check(self, config) -> bool:
+        """Basic configuration structure check."""
+        try:
+            # Check if it's dict-like and has basic structure
+            if not hasattr(config, 'get'):
+                return False
+                
+            providers = config.get('providers')
+            if not providers:
+                return False
+                
+            # Check if providers has expected structure
+            if not isinstance(providers, dict):
+                return False
+                
+            # Basic checks passed
+            return True
+        except:
+            return False
 
     def _get_config_manager(self) -> ConfigManager:
         """Get configuration manager."""
         config_dir = Path.cwd() / ".resource-manager"
         return ConfigManager(config_dir)
 
-    def _print_config(self, config: Config, indent: int = 0):
+    def _print_config_simple(self, config: Config):
         """Print configuration in a simple format."""
-        for key, value in config.items():
+        try:
+            config_dict = config.to_dict()
+            self._print_dict(config_dict, 0)
+        except Exception as e:
+            self.line_error(f"Error printing config: {e}")
+            
+    def _print_dict(self, data: dict, indent: int = 0):
+        """Print dictionary recursively."""
+        for key, value in data.items():
             if isinstance(value, dict):
                 self.line(" " * indent + f"{key}:")
-                self._print_config(Config(value), indent + 2)
+                self._print_dict(value, indent + 2)
+            elif isinstance(value, list):
+                self.line(" " * indent + f"{key}:")
+                for i, item in enumerate(value):
+                    if isinstance(item, dict):
+                        self.line(" " * (indent + 2) + f"[{i}]:")
+                        self._print_dict(item, indent + 4)
+                    else:
+                        self.line(" " * (indent + 2) + f"[{i}]: {item}")
             else:
                 self.line(" " * indent + f"{key}: {value}")
 
@@ -164,6 +168,7 @@ class ConfigCommand(Command):
                 self.line(f"      URL: {provider.get('url', 'N/A')}")
                 self.line(f"      Enabled: {provider.get('enabled', True)}")
                 self.line(f"      Branch: {provider.get('default_branch', 'main')}")
+                self.line(f"      Resource Dir: {provider.get('resource_dir', 'resources')}")
                 self.line(f"      Timeout: {provider.get('timeout', 10)}s")
         
         # Local providers
@@ -175,6 +180,16 @@ class ConfigCommand(Command):
                 self.line(f"      Path: {provider.get('path', 'N/A')}")
                 self.line(f"      Enabled: {provider.get('enabled', True)}")
         
+        # Print resource patterns
+        self.line("\n<comment>Resource Patterns:</comment>")
+        include_patterns = config.get("resources.include_patterns", [])
+        exclude_patterns = config.get("resources.exclude_patterns", [])
+        
+        if include_patterns:
+            self.line(f"  Include: {', '.join(include_patterns)}")
+        if exclude_patterns:
+            self.line(f"  Exclude: {', '.join(exclude_patterns)}")
+        
         # Print cache settings
         cache = config.get("cache", {})
         if cache:
@@ -183,24 +198,3 @@ class ConfigCommand(Command):
             self.line(f"  TTL: {cache.get('ttl', 3600)}s")
             if "dir" in cache:
                 self.line(f"  Directory: {cache['dir']}")
-
-    def _parse_value(self, value: str) -> Any:
-        """Parse configuration value."""
-        # Try to parse as boolean
-        if value.lower() in ("true", "false"):
-            return value.lower() == "true"
-        
-        # Try to parse as integer
-        try:
-            return int(value)
-        except ValueError:
-            pass
-        
-        # Try to parse as float
-        try:
-            return float(value)
-        except ValueError:
-            pass
-        
-        # Return as string
-        return value
