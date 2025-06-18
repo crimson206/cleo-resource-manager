@@ -1,6 +1,6 @@
 [project]
 name = "resource-manager"
-version = "1.0.0"
+version = "1.0.1"
 description = "Resource manager for managing and caching resources from various providers"
 authors = [
     {name = "Sisung Kim", email = "sisung.kim1@gmail.com"}

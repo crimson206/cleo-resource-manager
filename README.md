@@ -1,3 +1,7 @@
+---
+version: "1.0.1"
+---
+
 # Resource Manager
 
 A powerful Python CLI tool for managing and downloading resources from various providers including GitHub repositories and local filesystems.
@@ -275,6 +279,14 @@ The tool provides detailed error messages and suggestions:
 **Sisung Kim** - sisung.kim1@gmail.com
 
 ## Changelog
+
+### 1.0.1
+- Refactor project structure for better maintainability
+  - Move providers to dedicated directory structure
+  - Split provider-related code into separate modules
+  - Update import paths across the codebase
+- Update test structure to match new project organization
+- Add flake8 configuration for consistent code style
 
 ### 1.0.0
 - Initial release
