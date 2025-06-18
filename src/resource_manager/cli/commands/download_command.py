@@ -23,8 +23,8 @@ class DownloadCommand(Command):
         ),
         argument(
             "target_dir",
-            "Target directory to download resources to",
-            optional=False,
+            "Target directory to download resources to (optional if specified in config)",
+            optional=True,
         ),
     ]
 
@@ -69,11 +69,11 @@ class DownloadCommand(Command):
                 return 1
 
             provider_name = self.argument("provider_name")
-            target_dir = self.argument("target_dir")
+            target_dir = self.argument("target_dir")  # Can be None, provider will use config's target_dir
             pattern = self.option("pattern") or "*"
 
-            # Validate target directory
-            if not self._validate_target_dir(target_dir):
+            # Validate target directory if provided
+            if target_dir and not self._validate_target_dir(target_dir):
                 return 1
 
             if provider_name.lower() == "all":
@@ -107,6 +107,7 @@ class DownloadCommand(Command):
 
         try:
             if not self.option("quiet"):
+                target_dir = provider.target_dir if target_dir is None else target_dir
                 self.info(f"Downloading from '{provider_name}' to '{target_dir}'...")
                 if pattern != "*":
                     self.line(f"Pattern: {pattern}")

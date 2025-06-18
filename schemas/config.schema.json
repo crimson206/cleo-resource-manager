@@ -59,6 +59,11 @@
                                 "description": "Directory in the repository where resources are stored",
                                 "default": "resources"
                             },
+                            "target_dir": {
+                                "type": "string",
+                                "description": "Default target directory for downloads. If not specified, must be provided in download command",
+                                "default": null
+                            },
                             "timeout": {
                                 "type": "integer",
                                 "description": "Timeout for GitHub API requests in seconds",

@@ -2,14 +2,13 @@ import shutil
 import requests
 from typing import List, Dict, Any, Optional
 
-from .github_auth import (
+from resource_manager.providers.github.github_auth import (
     get_github_token,
     get_token_from_env,
     get_token_from_git_credentials,
 )
 from resource_manager.core.provider_base import Provider
 from resource_manager.core.config import Config
-
 
 class GitHubProvider(Provider):
     """GitHub repository resource provider."""
@@ -31,6 +30,7 @@ class GitHubProvider(Provider):
         self.branch = provider_config.get("default_branch", "main")
         self.timeout = provider_config.get("timeout", 10)
         self.resource_dir = provider_config.get("resource_dir", "resources")
+        self.target_dir = provider_config.get("target_dir")  # Get target_dir from config
 
         # Get GitHub token based on auth configuration
         auth_method = config.get("auth.github.method", "auto")
@@ -56,6 +56,10 @@ class GitHubProvider(Provider):
         """Download folder contents from GitHub to local directory (recursive)."""
         if not self.enabled:
             return []
+
+        # Use config's target_dir if not provided in command
+        if not target_dir and self.target_dir:
+            target_dir = self.target_dir
 
         target_path = self._ensure_target_dir(target_dir)
         downloaded_files = []

@@ -12,6 +12,7 @@
         "url": "https://github.com/crimson206/my-prompts",
         "default_branch": "main",
         "resource_dir": "prompts",
+        "target_dir": ".github_resources",
         "timeout": 10
       }
     ],
@@ -19,7 +20,8 @@
       {
         "name": "example-local",
         "enabled": true,
-        "path": "./local-resources"
+        "path": "./local-resources",
+        "target_dir": ".local_resources"
       }
     ]
   },
