@@ -5,8 +5,8 @@ from pathlib import Path
 from cleo.commands.command import Command
 from cleo.helpers import argument, option
 
-from ...core.config import ConfigManager
-from ...core.providers import get_provider, get_all_providers
+from resource_manager.core.config import ConfigManager
+from resource_manager.core.provider_getter import get_provider, get_all_providers
 
 
 class DownloadCommand(Command):
@@ -63,7 +63,9 @@ class DownloadCommand(Command):
             config = config_manager.load_config()
 
             if not config:
-                self.line_error("No configuration found. Use 'config init' to create configuration.")
+                self.line_error(
+                    "No configuration found. Use 'config init' to create configuration."
+                )
                 return 1
 
             provider_name = self.argument("provider_name")
@@ -77,13 +79,17 @@ class DownloadCommand(Command):
             if provider_name.lower() == "all":
                 return self._download_from_all_providers(config, target_dir, pattern)
             else:
-                return self._download_from_provider(config, provider_name, target_dir, pattern)
+                return self._download_from_provider(
+                    config, provider_name, target_dir, pattern
+                )
 
         except Exception as e:
             self.line_error(f"Error: {str(e)}")
             return 1
 
-    def _download_from_provider(self, config, provider_name: str, target_dir: str, pattern: str) -> int:
+    def _download_from_provider(
+        self, config, provider_name: str, target_dir: str, pattern: str
+    ) -> int:
         """Download from a specific provider."""
         provider = self._get_provider(config, provider_name)
         if not provider:
@@ -106,7 +112,9 @@ class DownloadCommand(Command):
                     self.line(f"Pattern: {pattern}")
                 self.line(f"Recursive: {recursive}, Clean: {clean}")
 
-            downloaded_files = provider.download_folder(target_dir, pattern, recursive=recursive, clean=clean)
+            downloaded_files = provider.download_folder(
+                target_dir, pattern, recursive=recursive, clean=clean
+            )
 
             if downloaded_files:
                 if not self.option("quiet"):
@@ -115,17 +123,21 @@ class DownloadCommand(Command):
                         self.line(f"  - {file_path}")
                 return 0
             else:
-                self.line("No files downloaded (no matching files found or all files filtered out)")
+                self.line(
+                    "No files downloaded (no matching files found or all files filtered out)"
+                )
                 return 0
 
         except Exception as e:
             self.line_error(f"Failed to download from '{provider_name}': {str(e)}")
             return 1
 
-    def _download_from_all_providers(self, config, target_dir: str, pattern: str) -> int:
+    def _download_from_all_providers(
+        self, config, target_dir: str, pattern: str
+    ) -> int:
         """Download from all enabled providers."""
         providers = get_all_providers(config)
-        
+
         if not providers:
             self.line_error("No providers configured")
             return 1
@@ -140,7 +152,9 @@ class DownloadCommand(Command):
         clean = not self.option("no-clean")
 
         if not self.option("quiet"):
-            self.info(f"Downloading from {len(enabled_providers)} providers to '{target_dir}'...")
+            self.info(
+                f"Downloading from {len(enabled_providers)} providers to '{target_dir}'..."
+            )
             if pattern != "*":
                 self.line(f"Pattern: {pattern}")
             self.line(f"Recursive: {recursive}, Clean: {clean}")
@@ -153,8 +167,10 @@ class DownloadCommand(Command):
                 if not self.option("quiet"):
                     self.line(f"\n<comment>Provider: {provider.name}</comment>")
 
-                downloaded_files = provider.download_folder(target_dir, pattern, recursive=recursive, clean=clean)
-                
+                downloaded_files = provider.download_folder(
+                    target_dir, pattern, recursive=recursive, clean=clean
+                )
+
                 if downloaded_files:
                     total_downloaded += len(downloaded_files)
                     if not self.option("quiet"):
@@ -201,13 +217,13 @@ class DownloadCommand(Command):
     def _validate_target_dir(self, target_dir: str) -> bool:
         """Validate target directory."""
         target_path = Path(target_dir)
-        
+
         # Check if target exists and is not empty
         if target_path.exists():
             if target_path.is_file():
                 self.line_error(f"Target path is a file, not a directory: {target_dir}")
                 return False
-            
+
             if any(target_path.iterdir()) and not self.option("force"):
                 self.line_error(f"Target directory is not empty: {target_dir}")
                 self.line("Use --force to download anyway")

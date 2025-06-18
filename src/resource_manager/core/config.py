@@ -113,7 +113,7 @@ class Config:
         github_providers = providers["github"]
         if not isinstance(github_providers, list):
             raise ValueError("GitHub providers must be a list")
-        
+
         for provider in github_providers:
             if not isinstance(provider, dict):
                 raise ValueError("GitHub provider must be a dictionary")
@@ -126,7 +126,7 @@ class Config:
         local_providers = providers["local"]
         if not isinstance(local_providers, list):
             raise ValueError("Local providers must be a list")
-        
+
         for provider in local_providers:
             if not isinstance(provider, dict):
                 raise ValueError("Local provider must be a dictionary")
@@ -138,24 +138,26 @@ class Config:
         # Initialize and validate auth section
         if "auth" not in self._config:
             self._config["auth"] = {"github": {"method": "auto"}}
-        
+
         auth = self._config["auth"]
         if not isinstance(auth, dict):
             raise ValueError("Auth must be a dictionary")
-        
+
         # Initialize GitHub auth if not present
         if "github" not in auth:
             auth["github"] = {"method": "auto"}
-        
+
         github_auth = auth["github"]
         if not isinstance(github_auth, dict):
             raise ValueError("GitHub auth must be a dictionary")
-        
+
         # Validate auth method
         auth_method = github_auth.get("method", "auto")
         valid_methods = ["default", "auto", "dotenv", "gitcli"]
         if auth_method not in valid_methods:
-            raise ValueError(f"Invalid auth method '{auth_method}'. Must be one of: {', '.join(valid_methods)}")
+            raise ValueError(
+                f"Invalid auth method '{auth_method}'. Must be one of: {', '.join(valid_methods)}"
+            )
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
@@ -197,19 +199,14 @@ class ConfigManager:
     ):
         if config_dir is None:
             config_dir = Path.cwd() / ".resource-manager"
-        
+
         self.config_dir = config_dir
         self.config_file = config_file
         self.config_path = config_dir / config_file
 
     def init(self) -> None:
         """Initialize empty configuration."""
-        config = Config({
-            "providers": {
-                "github": [],
-                "local": []
-            }
-        })
+        config = Config({"providers": {"github": [], "local": []}})
         self.save_config(config)
 
     def load_config(self) -> Optional[Config]:
@@ -236,11 +233,7 @@ class ConfigManager:
     def create_sample_config(self) -> Path:
         """Create a sample configuration file."""
         sample_config = {
-            "auth": {
-                "github": {
-                    "method": "auto"
-                }
-            },
+            "auth": {"github": {"method": "auto"}},
             "providers": {
                 "github": [
                     {
@@ -249,23 +242,23 @@ class ConfigManager:
                         "url": "https://github.com/owner/repo",
                         "default_branch": "main",
                         "resource_dir": "resources",
-                        "timeout": 10
+                        "timeout": 10,
                     }
                 ],
                 "local": [
                     {
                         "name": "example-local",
                         "enabled": True,
-                        "path": "./local-resources"
+                        "path": "./local-resources",
                     }
-                ]
+                ],
             },
             "resources": {
                 "include_patterns": ["*.txt", "*.md"],
-                "exclude_patterns": [".git", "__pycache__", "*.pyc"]
-            }
+                "exclude_patterns": [".git", "__pycache__", "*.pyc"],
+            },
         }
-        
+
         config = Config(sample_config)
         self.save_config(config)
         return self.config_path
@@ -274,57 +267,57 @@ class ConfigManager:
         """Validate configuration."""
         if not config:
             return False
-            
+
         try:
             # Basic structure validation
             if not isinstance(config.to_dict(), dict):
                 return False
-                
+
             # Check if providers exist
             providers = config.get("providers")
             if not isinstance(providers, dict):
                 return False
-                
+
             # Check GitHub providers
             github_providers = config.get("providers.github", [])
             if not isinstance(github_providers, list):
                 return False
-                
+
             for provider in github_providers:
                 if not isinstance(provider, dict):
                     return False
                 if "name" not in provider or "url" not in provider:
                     return False
-                    
+
             # Check local providers
             local_providers = config.get("providers.local", [])
             if not isinstance(local_providers, list):
                 return False
-                
+
             for provider in local_providers:
                 if not isinstance(provider, dict):
                     return False
                 if "name" not in provider or "path" not in provider:
                     return False
-            
+
             # Check auth section
             auth = config.get("auth", {})
             if auth and not isinstance(auth, dict):
                 return False
-            
+
             # Check GitHub auth
             github_auth = config.get("auth.github", {})
             if github_auth:
                 if not isinstance(github_auth, dict):
                     return False
-                
+
                 auth_method = github_auth.get("method", "auto")
                 valid_methods = ["default", "auto", "dotenv", "gitcli"]
                 if auth_method not in valid_methods:
                     return False
-                    
+
             return True
-            
+
         except Exception:
             return False
 
@@ -335,5 +328,7 @@ class ConfigManager:
             "path": str(self.config_path),
             "exists": self.config_path.exists(),
             "valid": self.validate_config(config) if config else False,
-            "has_providers": bool(config and config.get("providers")) if config else False,
+            "has_providers": (
+                bool(config and config.get("providers")) if config else False
+            ),
         }

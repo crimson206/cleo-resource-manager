@@ -70,9 +70,11 @@ class ConfigCommand(Command):
     def _show_config(self, config_manager: ConfigManager) -> int:
         """Show current configuration."""
         config = config_manager.load_config()
-        
+
         if not config:
-            self.line("No configuration found. Use 'config init' to create configuration.")
+            self.line(
+                "No configuration found. Use 'config init' to create configuration."
+            )
             return 1
 
         if self.option("pretty"):
@@ -89,7 +91,7 @@ class ConfigCommand(Command):
             if not config:
                 self.line_error("No configuration found to validate")
                 return 1
-                
+
             # Use the improved validation method
             if config_manager.validate_config(config):
                 self.info("Configuration is valid")
@@ -97,7 +99,7 @@ class ConfigCommand(Command):
             else:
                 self.line_error("Configuration is invalid")
                 return 1
-                
+
         except Exception as e:
             self.line_error(f"Error validating config: {str(e)}")
             return 1
@@ -106,17 +108,17 @@ class ConfigCommand(Command):
         """Basic configuration structure check."""
         try:
             # Check if it's dict-like and has basic structure
-            if not hasattr(config, 'get'):
+            if not hasattr(config, "get"):
                 return False
-                
-            providers = config.get('providers')
+
+            providers = config.get("providers")
             if not providers:
                 return False
-                
+
             # Check if providers has expected structure
             if not isinstance(providers, dict):
                 return False
-                
+
             # Basic checks passed
             return True
         except:
@@ -134,7 +136,7 @@ class ConfigCommand(Command):
             self._print_dict(config_dict, 0)
         except Exception as e:
             self.line_error(f"Error printing config: {e}")
-            
+
     def _print_dict(self, data: dict, indent: int = 0):
         """Print dictionary recursively."""
         for key, value in data.items():
@@ -155,10 +157,10 @@ class ConfigCommand(Command):
     def _print_config_pretty(self, config: Config):
         """Print configuration in a pretty format."""
         self.line("\n<info>Configuration:</info>")
-        
+
         # Print providers
         self.line("\n<comment>Providers:</comment>")
-        
+
         # GitHub providers
         github_providers = config.get_providers("github")
         if github_providers:
@@ -168,9 +170,11 @@ class ConfigCommand(Command):
                 self.line(f"      URL: {provider.get('url', 'N/A')}")
                 self.line(f"      Enabled: {provider.get('enabled', True)}")
                 self.line(f"      Branch: {provider.get('default_branch', 'main')}")
-                self.line(f"      Resource Dir: {provider.get('resource_dir', 'resources')}")
+                self.line(
+                    f"      Resource Dir: {provider.get('resource_dir', 'resources')}"
+                )
                 self.line(f"      Timeout: {provider.get('timeout', 10)}s")
-        
+
         # Local providers
         local_providers = config.get_providers("local")
         if local_providers:
@@ -179,17 +183,17 @@ class ConfigCommand(Command):
                 self.line(f"    [{i}] {provider['name']}:")
                 self.line(f"      Path: {provider.get('path', 'N/A')}")
                 self.line(f"      Enabled: {provider.get('enabled', True)}")
-        
+
         # Print resource patterns
         self.line("\n<comment>Resource Patterns:</comment>")
         include_patterns = config.get("resources.include_patterns", [])
         exclude_patterns = config.get("resources.exclude_patterns", [])
-        
+
         if include_patterns:
             self.line(f"  Include: {', '.join(include_patterns)}")
         if exclude_patterns:
             self.line(f"  Exclude: {', '.join(exclude_patterns)}")
-        
+
         # Print cache settings
         cache = config.get("cache", {})
         if cache:

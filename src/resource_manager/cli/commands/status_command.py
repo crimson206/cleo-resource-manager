@@ -5,7 +5,7 @@ from cleo.commands.command import Command
 from cleo.helpers import argument, option
 
 from ...core.config import ConfigManager
-from ...core.providers import get_provider, get_all_providers
+from resource_manager.core.provider_getter import get_provider, get_all_providers
 
 
 class StatusCommand(Command):
@@ -38,7 +38,9 @@ class StatusCommand(Command):
             config = config_manager.load_config()
 
             if not config:
-                self.line_error("No configuration found. Use 'config init' to create configuration.")
+                self.line_error(
+                    "No configuration found. Use 'config init' to create configuration."
+                )
                 return 1
 
             provider_name = self.argument("provider_name")
@@ -62,15 +64,17 @@ class StatusCommand(Command):
 
         self.line(f"<info>Provider: {provider.name}</info>")
         self._print_provider_details(provider)
-        
+
         return 0
 
     def _show_all_providers_status(self, config) -> int:
         """Show status of all providers."""
         providers = get_all_providers(config)
-        
+
         if not providers:
-            self.line("No providers configured. Use 'config init' to create configuration.")
+            self.line(
+                "No providers configured. Use 'config init' to create configuration."
+            )
             return 1
 
         self.line("<info>Provider Status Overview:</info>\n")
@@ -78,11 +82,13 @@ class StatusCommand(Command):
         # Summary table
         enabled_count = sum(1 for p in providers if p.enabled)
         available_count = 0
-        
+
         if self.option("check-connection"):
             self.line("Checking connections...")
-            available_count = sum(1 for p in providers if p.enabled and p.is_available())
-        
+            available_count = sum(
+                1 for p in providers if p.enabled and p.is_available()
+            )
+
         self.line(f"Total providers: {len(providers)}")
         self.line(f"Enabled providers: {enabled_count}")
         if self.option("check-connection"):
@@ -101,24 +107,26 @@ class StatusCommand(Command):
     def _print_provider_details(self, provider, indent: int = 0) -> None:
         """Print detailed information about a provider."""
         prefix = " " * indent
-        
+
         # Basic info
         provider_type = provider.__class__.__name__.replace("Provider", "").lower()
         self.line(f"{prefix}Type: {provider_type}")
         self.line(f"{prefix}Enabled: {'Yes' if provider.enabled else 'No'}")
-        
+
         # Connection status
         if self.option("check-connection") or self.argument("provider_name"):
             try:
                 is_available = provider.is_available()
                 status_color = "info" if is_available else "error"
                 status_text = "Available" if is_available else "Unavailable"
-                self.line(f"{prefix}Status: <{status_color}>{status_text}</{status_color}>")
+                self.line(
+                    f"{prefix}Status: <{status_color}>{status_text}</{status_color}>"
+                )
             except Exception as e:
                 self.line(f"{prefix}Status: <error>Error - {str(e)}</error>")
-        
+
         # Provider-specific details
-        if hasattr(provider, 'url'):  # GitHub provider
+        if hasattr(provider, "url"):  # GitHub provider
             self.line(f"{prefix}URL: {provider.url}")
             if self.option("verbose"):
                 self.line(f"{prefix}Owner: {provider.owner}")
@@ -126,15 +134,17 @@ class StatusCommand(Command):
                 self.line(f"{prefix}Branch: {provider.branch}")
                 self.line(f"{prefix}Resource Directory: {provider.resource_dir}")
                 self.line(f"{prefix}Timeout: {provider.timeout}s")
-        
-        elif hasattr(provider, 'base_path'):  # Local provider
+
+        elif hasattr(provider, "base_path"):  # Local provider
             self.line(f"{prefix}Path: {provider.base_path}")
             if self.option("verbose"):
                 path_exists = provider.base_path.exists()
                 path_status = "exists" if path_exists else "missing"
                 path_color = "info" if path_exists else "error"
-                self.line(f"{prefix}Path Status: <{path_color}>{path_status}</{path_color}>")
-                
+                self.line(
+                    f"{prefix}Path Status: <{path_color}>{path_status}</{path_color}>"
+                )
+
                 if path_exists and provider.base_path.is_dir():
                     try:
                         file_count = len(list(provider.base_path.glob("*")))
@@ -144,10 +154,14 @@ class StatusCommand(Command):
 
         # Pattern filters
         if self.option("verbose"):
-            if hasattr(provider, '_include_patterns') and provider._include_patterns:
-                self.line(f"{prefix}Include Patterns: {', '.join(provider._include_patterns)}")
-            if hasattr(provider, '_exclude_patterns') and provider._exclude_patterns:
-                self.line(f"{prefix}Exclude Patterns: {', '.join(provider._exclude_patterns)}")
+            if hasattr(provider, "_include_patterns") and provider._include_patterns:
+                self.line(
+                    f"{prefix}Include Patterns: {', '.join(provider._include_patterns)}"
+                )
+            if hasattr(provider, "_exclude_patterns") and provider._exclude_patterns:
+                self.line(
+                    f"{prefix}Exclude Patterns: {', '.join(provider._exclude_patterns)}"
+                )
 
     def _get_provider(self, config, provider_name: str):
         """Get provider instance by name."""

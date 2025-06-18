@@ -21,4 +21,4 @@ class ResourceManagerApplication(Application):
 def main():
     """Main entry point."""
     app = ResourceManagerApplication()
-    app.run() 
+    app.run()
