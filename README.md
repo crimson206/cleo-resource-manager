@@ -1,5 +1,5 @@
 ---
-version: "1.0.1"
+version: "1.1.0"
 ---
 
 # Resource Manager
@@ -53,6 +53,7 @@ resource-manager config init
         "url": "https://github.com/owner/repo",
         "default_branch": "main",
         "resource_dir": "resources",
+        "target_dir": "./downloaded-resources",
         "timeout": 10
       }
     ],
@@ -60,7 +61,8 @@ resource-manager config init
       {
         "name": "local-resources",
         "enabled": true,
-        "path": "./local-resources"
+        "path": "./local-resources",
+        "target_dir": "./local-downloads"
       }
     ]
   },
@@ -73,7 +75,11 @@ resource-manager config init
 
 3. **Download resources**:
 ```bash
-resource-manager download my-repo ./downloaded-resources
+# Using config's target_dir
+resource-manager download my-repo
+
+# Or specify custom target directory
+resource-manager download my-repo ./custom-download
 ```
 
 ## Usage
@@ -152,6 +158,7 @@ resource-manager status <provider_name> [--check-connection]
   "url": "https://github.com/owner/repo",
   "default_branch": "main",
   "resource_dir": "resources",
+  "target_dir": "./downloaded",
   "timeout": 10
 }
 ```
@@ -162,6 +169,7 @@ resource-manager status <provider_name> [--check-connection]
 - `url`: GitHub repository URL
 - `default_branch`: Branch to download from (default: "main")
 - `resource_dir`: Subdirectory within the repo to download from
+- `target_dir`: Default target directory for downloads (optional)
 - `timeout`: Request timeout in seconds
 
 #### Local Provider
@@ -169,7 +177,8 @@ resource-manager status <provider_name> [--check-connection]
 {
   "name": "provider-name",
   "enabled": true,
-  "path": "./local-resources"
+  "path": "./local-resources",
+  "target_dir": "./local-downloads"
 }
 ```
 
@@ -177,6 +186,7 @@ resource-manager status <provider_name> [--check-connection]
 - `name`: Unique provider name
 - `enabled`: Whether the provider is active
 - `path`: Local directory path
+- `target_dir`: Default target directory for downloads (optional)
 
 ### Authentication
 
@@ -279,6 +289,12 @@ The tool provides detailed error messages and suggestions:
 **Sisung Kim** - sisung.kim1@gmail.com
 
 ## Changelog
+
+### 1.1.0
+- Add target_dir configuration support
+  - Allow setting default target directory in config
+  - Make target_dir optional in download command
+  - Support both config and command-line target directory specification
 
 ### 1.0.1
 - Refactor project structure for better maintainability
