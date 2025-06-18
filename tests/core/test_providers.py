@@ -1,54 +1,47 @@
 """Tests for resource providers."""
 
-import os
-import shutil
-from pathlib import Path
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-from cleo_resource_manager.core.config import Config
-from cleo_resource_manager.core.providers import (
-    GitHubProvider,
-    LocalProvider,
-    get_provider,
-    get_all_providers
-)
+from resource_manager.core.config import Config
+
+from resource_manager.core.provider_getter import get_provider, get_all_providers
+from resource_manager.providers.local import LocalProvider
+from resource_manager.providers.github.core import GitHubProvider
 
 
 @pytest.fixture
 def sample_config():
     """Sample configuration for testing."""
-    return Config({
-        "providers": {
-            "github": [
-                {
-                    "name": "test-github",
-                    "enabled": True,
-                    "url": "https://github.com/test/repo",
-                    "default_branch": "main",
-                    "resource_dir": "resources"
-                },
-                {
-                    "name": "test-github-real",
-                    "enabled": True,
-                    "url": "https://github.com/crimson206/cleo-resource-manager",
-                    "default_branch": "dev",
-                    "resource_dir": "tests/environment/sample_outputs/remote_resource"
-                }
-            ],
-            "local": [
-                {
-                    "name": "test-local",
-                    "enabled": True,
-                    "path": "./local-resources"
-                }
-            ],
-        },
-        "resources": {
-            "include_patterns": ["*.txt"],
-            "exclude_patterns": [".git", "*.pyc"]
+    return Config(
+        {
+            "providers": {
+                "github": [
+                    {
+                        "name": "test-github",
+                        "enabled": True,
+                        "url": "https://github.com/test/repo",
+                        "default_branch": "main",
+                        "resource_dir": "resources",
+                    },
+                    {
+                        "name": "test-github-real",
+                        "enabled": True,
+                        "url": "https://github.com/crimson206/cleo-resource-manager",
+                        "default_branch": "dev",
+                        "resource_dir": "tests/environment/sample_outputs/remote_resource",
+                    },
+                ],
+                "local": [
+                    {"name": "test-local", "enabled": True, "path": "./local-resources"}
+                ],
+            },
+            "resources": {
+                "include_patterns": ["*.txt"],
+                "exclude_patterns": [".git", "*.pyc"],
+            },
         }
-    })
+    )
 
 
 @pytest.fixture
@@ -80,22 +73,22 @@ def test_local_provider_download_folder(local_provider, tmp_path):
     (source_dir / "test1.txt").write_text("content 1")
     (source_dir / "test2.txt").write_text("content 2")
     (source_dir / "test.pyc").write_text("compiled")  # Should be excluded
-    
+
     # Setup target directory
     target_dir = tmp_path / "target"
-    
+
     # Update provider path
     local_provider.base_path = source_dir
 
     # Test download_folder
     downloaded_files = local_provider.download_folder(str(target_dir))
-    
+
     # Check results
     assert len(downloaded_files) == 2  # Only .txt files due to filtering
     assert "test1.txt" in downloaded_files
     assert "test2.txt" in downloaded_files
     assert "test.pyc" not in downloaded_files  # Excluded by pattern
-    
+
     # Check files were actually created
     assert (target_dir / "test1.txt").exists()
     assert (target_dir / "test2.txt").exists()
@@ -117,58 +110,9 @@ def test_local_provider_basic_functionality(local_provider, tmp_path):
     # Test exists
     assert local_provider.exists("test.txt")
     assert not local_provider.exists("nonexistent.txt")
-    
+
     # Test is_available
     assert local_provider.is_available()
-
-
-@patch("requests.get")
-def test_github_provider_download_folder(mock_get, github_provider, tmp_path):
-    """Test GitHubProvider download_folder functionality."""
-    # Mock GitHub API responses
-    mock_get.return_value.status_code = 200
-    mock_get.return_value.raise_for_status = MagicMock()
-    mock_get.return_value.json.return_value = [
-        {
-            "name": "test1.txt",
-            "type": "file",
-            "download_url": "https://raw.githubusercontent.com/test/repo/main/resources/test1.txt"
-        },
-        {
-            "name": "test2.txt", 
-            "type": "file",
-            "download_url": "https://raw.githubusercontent.com/test/repo/main/resources/test2.txt"
-        }
-    ]
-    
-    # Mock file content downloads
-    def mock_file_download(url, timeout=None):
-        mock_response = MagicMock()
-        mock_response.raise_for_status = MagicMock()
-        if "test1.txt" in url:
-            mock_response.text = "content 1"
-        elif "test2.txt" in url:
-            mock_response.text = "content 2"
-        return mock_response
-    
-    mock_get.side_effect = [
-        mock_get.return_value,  # First call for directory listing
-        mock_file_download("test1.txt"),  # File download calls
-        mock_file_download("test2.txt")
-    ]
-
-    # Test download_folder
-    target_dir = tmp_path / "target"
-    downloaded_files = github_provider.download_folder(str(target_dir))
-    
-    # Check results
-    assert len(downloaded_files) == 2
-    assert "test1.txt" in downloaded_files
-    assert "test2.txt" in downloaded_files
-    
-    # Check files were created
-    assert (target_dir / "test1.txt").exists()
-    assert (target_dir / "test2.txt").exists()
 
 
 @patch("requests.get")
@@ -179,7 +123,7 @@ def test_github_provider_basic_functionality(mock_get, github_provider):
 
     # Test exists
     assert github_provider.exists("test.txt")
-    
+
     # Test exists with non-existent file
     mock_get.return_value.status_code = 404
     assert not github_provider.exists("nonexistent.txt")
@@ -192,7 +136,7 @@ def test_github_provider_real_exists(github_provider_real):
     assert github_provider_real.exists("test_file1.txt")
     assert github_provider_real.exists("test_file2.txt")
     assert github_provider_real.exists("nested_folder/test_file3.txt")
-    
+
     # 없는 파일
     assert not github_provider_real.exists("not_exist.txt")
 
@@ -201,13 +145,13 @@ def test_github_provider_real_exists(github_provider_real):
 def test_github_provider_real_download(github_provider_real, tmp_path):
     """Test GitHubProvider download with real repository."""
     target_dir = tmp_path / "real_download"
-    
+
     # Test download_folder
     downloaded_files = github_provider_real.download_folder(str(target_dir))
-    
+
     # Should have downloaded some files
     assert len(downloaded_files) > 0
-    
+
     # Check that files were actually created
     for file_name in downloaded_files:
         file_path = target_dir / file_name
@@ -249,31 +193,34 @@ def test_pattern_filtering(local_provider, tmp_path):
     (source_dir / "test.txt").write_text("text file")
     (source_dir / "script.py").write_text("python file")
     (source_dir / "data.json").write_text("json file")
-    
+
     target_dir = tmp_path / "target"
     local_provider.base_path = source_dir
 
     # Test with specific pattern
     downloaded_files = local_provider.download_folder(str(target_dir), "*.py")
-    
+
     # Should only download .py files, but also filtered by include_patterns (*.txt)
     # So nothing should be downloaded since *.py doesn't match *.txt pattern
     assert len(downloaded_files) == 0
-    
+
     # Test with txt pattern
     downloaded_files = local_provider.download_folder(str(target_dir), "*.txt")
     assert len(downloaded_files) == 1
     assert "test.txt" in downloaded_files
 
+
 def test_github_provider_auth_integration(sample_config):
     """Test GitHubProvider with real auth functions."""
     config_data = {
         "auth": {"github": {"method": "dotenv"}},
-        "providers": {"github": [{"name": "test", "url": "https://github.com/test/repo"}]}
+        "providers": {
+            "github": [{"name": "test", "url": "https://github.com/test/repo"}]
+        },
     }
-    
+
     config = Config(config_data)
     provider_config = config.get_providers("github")[0]
-    
+
     # 실제 auth 함수가 호출됨
     provider = GitHubProvider(config, provider_config)

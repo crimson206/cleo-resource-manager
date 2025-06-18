@@ -1,10 +1,9 @@
 """Tests for config module."""
 
-import os
 import json
 from pathlib import Path
 import pytest
-from cleo_resource_manager.core.config import Config, ConfigManager
+from resource_manager.core.config import Config, ConfigManager
 
 
 @pytest.fixture

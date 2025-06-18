@@ -1,10 +1,10 @@
 """Common test fixtures."""
 
-import os
+
 import tempfile
 from pathlib import Path
 import pytest
-from cleo_resource_manager.core.config import Config
+from resource_manager.core.config import Config
 
 
 @pytest.fixture
